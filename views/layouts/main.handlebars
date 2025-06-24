@@ -26,18 +26,6 @@
           data-bs-toggle="dropdown"
           role="button"
           aria-expanded="false"
-        >Projetos</a>
-        <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="/project/create">Cadastrar projeto</a></li>
-          <li><a class="dropdown-item" href="/project/list">Listar projetos</a></li>
-        </ul>
-      </li>
-      <li class="nav-item dropdown">
-        <a
-          class="nav-link dropdown-toggle"
-          data-bs-toggle="dropdown"
-          role="button"
-          aria-expanded="false"
         >Amostras</a>
         <ul class="dropdown-menu">
           <li><a class="dropdown-item" href="/sample/import">Importar amostras</a></li>
@@ -46,19 +34,7 @@
           <li><a class="dropdown-item" href="/sample/list">Listar amostras</a></li>
         </ul>
       </li>
-      <li class="nav-item dropdown">
-        <a
-          class="nav-link dropdown-toggle"
-          data-bs-toggle="dropdown"
-          role="button"
-          aria-expanded="false"
-        >Biblioteca de parâmetros</a>
-        <ul class="dropdown-menu">
-          <li><a class="dropdown-item" href="/pop/list">POPs</a></li>
-          <li><a class="dropdown-item" href="/lsct/list">LSCT</a></li>
-        </ul>
-      </li>
-      {{#if session.userid}}
+      {{!-- {{#if session.userid}}
         <li class="nav-item">
           <a
             class="nav-link active"
@@ -81,7 +57,7 @@
           aria-current="page"
           href="/auth/register"
         >Registrar usuário</a>
-      </li>
+      </li> --}}
     </ul>
     <div class="container">
       <div class="row mt-3">
