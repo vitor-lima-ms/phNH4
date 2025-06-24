@@ -2,21 +2,23 @@ const { DataTypes } = require("sequelize");
 
 const db = require("../db/conn");
 
-const Project = require("./Project");
-
 const Sample = db.define("Sample", {
   importId: {
     type: DataTypes.UUID,
     allowNull: true,
-    defaultValue: null,
+  },
+  ph: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  nh4: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
   data: {
     type: DataTypes.JSON,
     allowNull: false,
   },
 });
-
-Sample.belongsTo(Project);
-Project.hasMany(Sample);
 
 module.exports = Sample;
