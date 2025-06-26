@@ -4,6 +4,7 @@ const fs = require("fs");
 const csv = require("csv-parser");
 const { v4: uuidv4 } = require("uuid");
 const { Op } = require("sequelize");
+const iconv = require("iconv-lite");
 
 module.exports = class SampleController {
   static async selectImportGet(req, res) {
@@ -19,13 +20,24 @@ module.exports = class SampleController {
     res.render("sample/selectImport", { importIdsArray });
   }
 
-  static async listSamples(req, res) {
+  static async selectImportPost(req, res) {
+    const importId = req.body.importId;
+
+    const samples = await Sample.findAll({
+      raw: true,
+      where: { importId: importId, ph: { [Op.gt]: 0 }, nh4: { [Op.gt]: 0 } },
+    });
+
+    res.render("sample/classification", { samples, importId });
+  }
+
+  static async listSamples1(req, res) {
     const search = req.query.search;
 
     let queryOptions = {
       where: {
         ...(search && {
-          name: {
+          point: {
             [Op.like]: `%${search}%`,
           },
         }),
@@ -33,11 +45,20 @@ module.exports = class SampleController {
       raw: true,
     };
 
-    const samplesData = await Sample.findAll(queryOptions);
-
-    const samples = samplesData.map((result) => result.get({ plain: true }));
+    const samples = await Sample.findAll(queryOptions);
 
     res.render("sample/list", { samples });
+  }
+
+  static async listSamples2(req, res) {
+    const importId = req.params.importId;
+
+    const samples = await Sample.findAll({
+      raw: true,
+      where: { importId: importId, ph: { [Op.gt]: 0 }, nh4: { [Op.gt]: 0 } },
+    });
+
+    res.render("sample/classification", { samples, importId });
   }
 
   static async deleteSample(req, res) {
@@ -51,9 +72,9 @@ module.exports = class SampleController {
       raw: true,
       where: { id: req.params.id },
     });
-    const projects = await Project.findAll({ raw: true });
+    console.log(sample);
 
-    res.render("sample/edit", { sample, projects });
+    res.render("sample/edit", { sample });
   }
 
   static async editSamplePost(req, res) {
@@ -90,41 +111,61 @@ module.exports = class SampleController {
     }
 
     const currentImportId = uuidv4();
-
-    const results = [];
+    const groupedData = {};
     const filePath = req.file.path;
 
     fs.createReadStream(filePath)
-      .pipe(csv())
-      .on("data", (data) => {
-        const sampleToCreate = {
-          ProjectId: data.ProjectId,
-          importId: currentImportId,
-          data: data,
-        };
+      .pipe(csv({ separator: ";" }))
+      .on("data", (row) => {
+        const key = `${row["Ponto"]}_${row["Data"]}`;
 
-        results.push(sampleToCreate);
+        if (!groupedData[key]) {
+          groupedData[key] = {
+            importId: currentImportId,
+            point: row["Ponto"],
+            date: row["Data"],
+            opUnit: row["Unidade Operacional"],
+            nature: row["Natureza"],
+            parameters: {},
+          };
+        }
+
+        groupedData[key].parameters[row["Parametro"]] = {
+          value: row["Valor medido"],
+          unit: row["Unidade"],
+        };
       })
       .on("end", async () => {
-        fs.unlinkSync(filePath);
+        try {
+          for (const key in groupedData) {
+            const item = groupedData[key];
+            const sampleData = {
+              importId: currentImportId,
+              point: item["point"],
+              date: item["date"],
+              ph: item.parameters["ph"] ? item.parameters["ph"]["value"] : null,
+              nh4: item.parameters["nh4"]
+                ? item.parameters["nh4"]["value"]
+                : null,
+              data: {
+                opUnit: item["opUnit"],
+                point: item["point"],
+                date: item["date"],
+                nature: item["nature"],
+                ...item.parameters,
+              },
+            };
 
-        if (results.length > 0) {
-          try {
-            await Sample.bulkCreate(results);
-            res.redirect("/sample/list");
-          } catch (error) {
-            console.log(error);
-            res.redirect("/sample/import");
+            await Sample.create(sampleData);
           }
-        } else {
-          res.redirect("/sample/import");
+          fs.unlinkSync(filePath);
+          req.flash("message", "Dados importados com sucesso!");
+          res.redirect("/sample/list");
+        } catch (error) {
+          console.log(error);
+          fs.unlinkSync(filePath);
+          res.status(500).send("Erro ao importar!");
         }
-      })
-      .on("error", (error) => {
-        fs.unlinkSync(filePath);
-        console.log(error);
-        req.flash("message", "Erro ao processar o arquivo .csv!");
-        res.redirect("/sample/import");
       });
   }
 
@@ -147,5 +188,136 @@ module.exports = class SampleController {
     await Sample.destroy({ where: { importId: importId } });
 
     res.redirect("/sample/list");
+  }
+
+  static async classification(req, res) {
+    const samples = await Sample.findAll({
+      raw: true,
+      where: { ph: { [Op.gt]: 0 }, nh4: { [Op.gt]: 0 } },
+    });
+
+    for (const sample of samples) {
+      const ph = parseFloat(sample.ph.replace(",", "."));
+      const nh4 = parseFloat(sample.nh4.replace(",", "."));
+
+      if (ph <= 7.5) {
+        if (nh4 <= 3.7) {
+          sample.data["conformity"] = "Conforme";
+        } else {
+          sample.data["conformity"] = "Não conforme";
+        }
+      } else if (ph > 7.5 && ph <= 8) {
+        if (nh4 <= 2) {
+          sample.data["conformity"] = "Conforme";
+        } else {
+          sample.data["conformity"] = "Não conforme";
+        }
+      } else if (ph > 8 && ph <= 8.5) {
+        if (nh4 <= 1) {
+          sample.data["conformity"] = "Conforme";
+        } else {
+          sample.data["conformity"] = "Não conforme";
+        }
+      } else {
+        if (nh4 <= 0.5) {
+          sample.data["conformity"] = "Conforme";
+        } else {
+          sample.data["conformity"] = "Não conforme";
+        }
+      }
+
+      await Sample.update(sample, { where: { id: sample.id } });
+    }
+    res.redirect(`/sample/${samples[0].importId}/list`);
+  }
+
+  static async exportSamples(req, res) {
+    const importId = req.params.importId;
+    console.log(importId);
+
+    const samplesData = await Sample.findAll({
+      where: { importId: importId, ph: { [Op.gt]: 0 }, nh4: { [Op.gt]: 0 } },
+    });
+
+    const samples = samplesData.map((result) => result.get({ plain: true }));
+
+    const csvHeaders = [
+      "Ponto",
+      "Data de coleta",
+      "pH",
+      "Nitrogênio amoniacal",
+      "Conformidade",
+    ];
+
+    const escapeCsvValue = (value) => {
+      if (value === null || value === undefined) {
+        return "";
+      }
+      let strValue = String(value);
+      if (
+        strValue.includes(",") ||
+        strValue.includes('"') ||
+        strValue.includes("\n") ||
+        strValue.includes("\r")
+      ) {
+        return `"${strValue.replace(/"/g, '""')}"`;
+      }
+      return strValue;
+    };
+
+    const csvRows = samples.map((sample) => {
+      const point = sample.point;
+      const date = sample.date;
+      const ph = sample.ph;
+      const nh4 = sample.nh4;
+      const conformity = sample.data.conformity
+
+      return [
+        escapeCsvValue(point),
+        escapeCsvValue(date),
+        escapeCsvValue(ph),
+        escapeCsvValue(nh4),
+        escapeCsvValue(conformity),
+      ];
+    });
+    const csvString = [csvHeaders.join(","), ...csvRows].join("\n");
+    const csvBufferLatin1 = iconv.encode(csvString, "latin1");
+
+    res.setHeader("Content-Type", "text/csv; charset=latin1"); // Alterado para latin1
+    res.setHeader("Content-Disposition", "attachment;");
+    res.status(200).send(csvBufferLatin1);
+  }
+
+  static async showChart(req, res) {
+    const classifiedSamples = await Sample.findAll({
+      raw: true,
+      where: {
+        "data.conformity": { [Op.not]: null },
+      },
+    });
+
+    let accordingCount = 0;
+    let notAccordingCount = 0;
+    let totalCount = 0
+    for (const sample of classifiedSamples) {
+      if (sample.data.conformity === "Conforme") {
+        accordingCount += 1;
+      } else {
+        notAccordingCount += 1;
+      }
+      totalCount += 1
+    }
+
+    const accordingPercent = (accordingCount / totalCount) * 100
+    const notAccordingPercent = (notAccordingCount / totalCount) * 100
+
+    const chartData = {
+      labels: ["Conforme", "Não conforme"],
+      data: [accordingPercent, notAccordingPercent],
+    };
+
+    const chartDataJSON = JSON.stringify(chartData);
+
+    res.render("sample/chart", { chartDataJSON: chartDataJSON });
   }
 };
