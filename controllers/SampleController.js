@@ -5,6 +5,9 @@ const csv = require("csv-parser");
 const { v4: uuidv4 } = require("uuid");
 const { Op } = require("sequelize");
 const iconv = require("iconv-lite");
+const { ChartJSNodeCanvas } = require("chartjs-node-canvas");
+const ChartDataLabels = require("chartjs-plugin-datalabels");
+const archiver = require("archiver");
 
 module.exports = class SampleController {
   static async selectImportGet(req, res) {
@@ -336,43 +339,106 @@ module.exports = class SampleController {
     res.render("sample/chartPointSelection", { points });
   }
 
-  static async chartPoint(req, res) {
-    const point = req.body.pointSelect;
+  static async chartBatchExport(req, res) {
+    let points = req.body.pointsSelect;
 
-    const samples = await Sample.findAll({
-      raw: true,
-      where: {
-        point: point,
-        "data.conformity": { [Op.not]: null },
+    if (!Array.isArray(points)) {
+      points = [points];
+    }
+
+    const archive = archiver("zip", {
+      zlib: { level: 9 },
+    });
+
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=graficos_de_conformidade.zip"
+    );
+
+    archive.pipe(res);
+
+    const width = 800;
+    const height = 600;
+    const chartJSNodeCanvas = new ChartJSNodeCanvas({
+      width,
+      height,
+      plugins: {
+        modern: [ChartDataLabels],
       },
     });
 
-    let accordingCount = 0;
-    let notAccordingCount = 0;
-    let totalCount = 0;
-    for (const sample of samples) {
-      if (sample.data.conformity === "Conforme") {
-        accordingCount += 1;
-      } else {
-        notAccordingCount += 1;
+    for (const point of points) {
+      const samples = await Sample.findAll({
+        raw: true,
+        where: { point: point, "data.conformity": { [Op.not]: null } },
+      });
+
+      if (samples.length === 0) {
+        continue;
       }
-      totalCount += 1;
+
+      let accordingCount = 0;
+      let notAccordingCount = 0;
+      for (const sample of samples) {
+        if (sample.data.conformity === "Conforme") {
+          accordingCount += 1;
+        } else {
+          notAccordingCount += 1;
+        }
+      }
+      const totalCount = samples.length;
+      const accordingPercent = (accordingCount / totalCount) * 100;
+      const notAccordingPercent = (notAccordingCount / totalCount) * 100;
+
+      const configuration = {
+        type: "bar",
+        data: {
+          labels: ["Conforme (%)", "Não conforme (%)"],
+          datasets: [
+            {
+              label: "Conformidade",
+              data: [
+                accordingPercent.toFixed(2),
+                notAccordingPercent.toFixed(2),
+              ],
+              backgroundColor: [
+                "rgba(75, 192, 192, 0.7)",
+                "rgba(255, 99, 132, 0.7)",
+              ],
+              borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: "top" },
+            title: {
+              display: true,
+              text: `Gráfico de conformidade - ${point}`,
+            },
+            datalabels: {
+              anchor: "end",
+              align: "top",
+              color: "#444",
+              font: {
+                weight: "bold",
+              },
+              formatter: function (value, context) {
+                return value > 0 ? `${value} %` : null;
+              },
+            },
+          },
+        },
+      };
+      const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration);
+
+      archive.append(imageBuffer, {
+        name: `grafico_conformidade_${point}.png`,
+      });
     }
-
-    const accordingPercent = (accordingCount / totalCount) * 100;
-    const notAccordingPercent = (notAccordingCount / totalCount) * 100;
-
-    const chartData = {
-      title: samples[0].point,
-      labels: ["Conforme", "Não conforme"],
-      data: [accordingPercent, notAccordingPercent],
-    };
-
-    const chartDataJSON = JSON.stringify(chartData);
-
-    res.render("sample/chartPoint", {
-      chartDataJSON: chartDataJSON,
-      chartData: chartData,
-    });
+    await archive.finalize();
   }
 };
