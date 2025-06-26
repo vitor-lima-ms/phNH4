@@ -4,7 +4,8 @@ const multer = require("multer");
 
 const SampleController = require("../controllers/SampleController");
 
-router.get("/list", SampleController.listSamples);
+router.get("/list", SampleController.listSamples1);
+router.get("/:importId/list", SampleController.listSamples2);
 
 router.post("/delete", SampleController.deleteSample);
 
@@ -22,5 +23,13 @@ router.post(
 
 router.get("/delete-import", SampleController.deleteImportGet);
 router.post("/delete-import", SampleController.deleteImportPost);
+
+router.post("/pre-classification", SampleController.selectImportPost);
+
+router.post("/classification", SampleController.classification);
+
+router.get("/:importId/export-csv", SampleController.exportSamples);
+
+router.get("/chart", SampleController.showChart);
 
 module.exports = router;
