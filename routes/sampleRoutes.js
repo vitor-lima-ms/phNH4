@@ -30,6 +30,6 @@ router.post("/classification", SampleController.classification);
 
 router.get("/:importId/export-csv", SampleController.exportSamples);
 
-router.get("/chart", SampleController.showChart);
+router.get("/chart-all-points", SampleController.chartAllPoints);
 
 module.exports = router;

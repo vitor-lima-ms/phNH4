@@ -288,7 +288,7 @@ module.exports = class SampleController {
     res.status(200).send(csvBufferLatin1);
   }
 
-  static async showChart(req, res) {
+  static async chartAllPoints(req, res) {
     const classifiedSamples = await Sample.findAll({
       raw: true,
       where: {
@@ -318,6 +318,6 @@ module.exports = class SampleController {
 
     const chartDataJSON = JSON.stringify(chartData);
 
-    res.render("sample/chart", { chartDataJSON: chartDataJSON });
+    res.render("sample/chartAllPoints", { chartDataJSON: chartDataJSON });
   }
 };
