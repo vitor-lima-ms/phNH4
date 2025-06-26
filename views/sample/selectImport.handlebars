@@ -5,8 +5,8 @@
   <div class="row mt-3">
     <div class="col-4"></div>
     <div class="col-4">
-      <form action="/sample/delete-import" method="post">
-        <select class="form-select" name="idSelection" required>
+      <form action="/sample/pre-classification" method="post">
+        <select class="form-select" name="importId" required>
           {{#each importIdsArray}}
             <option value="{{this}}">{{this}}</option>
           {{/each}}
