@@ -1,0 +1,21 @@
+<div class="container">
+    <div class="row mb-3 text-center">
+        <h1>Selecione um ponto</h1>
+    </div>
+    <div class="row">
+        <div class="col-4"></div>
+        <div class="col-4">
+            <form action="/sample/chart-point" method="post">
+                <div>
+                    <select class="form-control mb-3" name="pointSelect">
+                        {{#each points}}
+                        <option value="{{this}}">{{this}}</option>
+                        {{/each}}
+                    </select>
+                    <button class="btn btn-primary" type="submit">Enviar</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-4"></div>
+    </div>
+</div>

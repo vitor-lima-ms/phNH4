@@ -270,7 +270,7 @@ module.exports = class SampleController {
       const date = sample.date;
       const ph = sample.ph;
       const nh4 = sample.nh4;
-      const conformity = sample.data.conformity
+      const conformity = sample.data.conformity;
 
       return [
         escapeCsvValue(point),
@@ -298,18 +298,18 @@ module.exports = class SampleController {
 
     let accordingCount = 0;
     let notAccordingCount = 0;
-    let totalCount = 0
+    let totalCount = 0;
     for (const sample of classifiedSamples) {
       if (sample.data.conformity === "Conforme") {
         accordingCount += 1;
       } else {
         notAccordingCount += 1;
       }
-      totalCount += 1
+      totalCount += 1;
     }
 
-    const accordingPercent = (accordingCount / totalCount) * 100
-    const notAccordingPercent = (notAccordingCount / totalCount) * 100
+    const accordingPercent = (accordingCount / totalCount) * 100;
+    const notAccordingPercent = (notAccordingCount / totalCount) * 100;
 
     const chartData = {
       labels: ["Conforme", "Não conforme"],
@@ -319,5 +319,60 @@ module.exports = class SampleController {
     const chartDataJSON = JSON.stringify(chartData);
 
     res.render("sample/chartAllPoints", { chartDataJSON: chartDataJSON });
+  }
+
+  static async chartPointSelection(req, res) {
+    const samples = await Sample.findAll({ raw: true });
+
+    const points = [];
+    for (const sample of samples) {
+      if (!points.includes(sample.point)) {
+        points.push(sample.point);
+      }
+    }
+
+    points.sort();
+
+    res.render("sample/chartPointSelection", { points });
+  }
+
+  static async chartPoint(req, res) {
+    const point = req.body.pointSelect;
+
+    const samples = await Sample.findAll({
+      raw: true,
+      where: {
+        point: point,
+        "data.conformity": { [Op.not]: null },
+      },
+    });
+
+    let accordingCount = 0;
+    let notAccordingCount = 0;
+    let totalCount = 0;
+    for (const sample of samples) {
+      if (sample.data.conformity === "Conforme") {
+        accordingCount += 1;
+      } else {
+        notAccordingCount += 1;
+      }
+      totalCount += 1;
+    }
+
+    const accordingPercent = (accordingCount / totalCount) * 100;
+    const notAccordingPercent = (notAccordingCount / totalCount) * 100;
+
+    const chartData = {
+      title: samples[0].point,
+      labels: ["Conforme", "Não conforme"],
+      data: [accordingPercent, notAccordingPercent],
+    };
+
+    const chartDataJSON = JSON.stringify(chartData);
+
+    res.render("sample/chartPoint", {
+      chartDataJSON: chartDataJSON,
+      chartData: chartData,
+    });
   }
 };
