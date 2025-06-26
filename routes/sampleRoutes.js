@@ -31,9 +31,7 @@ router.post("/classification", SampleController.classification);
 router.get("/:importId/export-csv", SampleController.exportSamples);
 
 router.get("/chart-all-points", SampleController.chartAllPoints);
-
-router.get("/chart-point-selection", SampleController.chartPointSelection)
-
-router.post("/chart-point", SampleController.chartPoint)
+router.get("/chart-point-selection", SampleController.chartPointSelection);
+router.post("/chart-batch-export", SampleController.chartBatchExport);
 
 module.exports = router;
