@@ -8,7 +8,7 @@
     <div class="col-4"></div>
     <div class="col-4 mt-3 text-center">
       <form action="/sample/list" method="get">
-        <input type="text" name="search" placeholder="Código do projeto" />
+        <input type="text" name="search" placeholder="Nome do ponto" />
         <button class="btn btn-secondary" type="submit">Buscar</button>
       </form>
     </div>
@@ -23,15 +23,15 @@
       <table class="table">
         <thead>
           <th>Nome</th>
-          <th>Projeto</th>
+          <th>Data</th>
           <th>Importação</th>
           <th colspan="2">Ações</th>
         </thead>
         <tbody>
           {{#each samples}}
             <tr>
-              <td>{{this.data.name}}</td>
-              <td>{{this.Project.code}} - {{this.Project.company}}</td>
+              <td>{{this.data.point}}</td>
+              <td>{{this.data.date}}</td>
               <td>{{this.importId}}</td>
               <td>
                 <form action="/sample/edit/{{this.id}}" method="get">
