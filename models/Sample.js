@@ -7,6 +7,14 @@ const Sample = db.define("Sample", {
     type: DataTypes.UUID,
     allowNull: true,
   },
+  point: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  date: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
   ph: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -17,7 +25,7 @@ const Sample = db.define("Sample", {
   },
   data: {
     type: DataTypes.JSON,
-    allowNull: false,
+    allowNull: true,
   },
 });
 
