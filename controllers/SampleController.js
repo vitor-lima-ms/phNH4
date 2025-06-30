@@ -412,12 +412,14 @@ module.exports = class SampleController {
           ],
         },
         options: {
-          responsive: true,
           plugins: {
             legend: { position: "top" },
             title: {
               display: true,
               text: `Gráfico de conformidade - ${point}`,
+            },
+            datalabels: {
+              display: false,
             },
           },
         },
