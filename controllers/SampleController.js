@@ -416,25 +416,8 @@ module.exports = class SampleController {
           plugins: {
             legend: { position: "top" },
             title: {
-              display: function (context) {
-                if (!context.dataset) {
-                  return false;
-                }
-
-                return context.dataset.data[context.dataIndex] > 0;
-              },
+              display: true,
               text: `Gráfico de conformidade - ${point}`,
-            },
-            datalabels: {
-              anchor: "end",
-              align: "top",
-              color: "#444",
-              font: {
-                weight: "bold",
-              },
-              formatter: function (value, context) {
-                return value > 0 ? `${value} %` : null;
-              },
             },
           },
         },
