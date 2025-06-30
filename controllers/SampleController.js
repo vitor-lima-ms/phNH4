@@ -118,6 +118,7 @@ module.exports = class SampleController {
     const filePath = req.file.path;
 
     fs.createReadStream(filePath)
+      .pipe(iconv.decodeStream("latin1"))
       .pipe(csv({ separator: ";" }))
       .on("data", (row) => {
         const key = `${row["Ponto"]}_${row["Data"]}`;
@@ -236,7 +237,6 @@ module.exports = class SampleController {
 
   static async exportSamples(req, res) {
     const importId = req.params.importId;
-    console.log(importId);
 
     const samplesData = await Sample.findAll({
       where: { importId: importId, ph: { [Op.gt]: 0 }, nh4: { [Op.gt]: 0 } },
@@ -286,7 +286,7 @@ module.exports = class SampleController {
     const csvString = [csvHeaders.join(","), ...csvRows].join("\n");
     const csvBufferLatin1 = iconv.encode(csvString, "latin1");
 
-    res.setHeader("Content-Type", "text/csv; charset=latin1"); // Alterado para latin1
+    res.setHeader("Content-Type", "text/csv; charset=latin1");
     res.setHeader("Content-Disposition", "attachment;");
     res.status(200).send(csvBufferLatin1);
   }
