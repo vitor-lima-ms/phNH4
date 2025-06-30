@@ -363,6 +363,7 @@ module.exports = class SampleController {
     const chartJSNodeCanvas = new ChartJSNodeCanvas({
       width,
       height,
+      backgroundColour: "white",
       plugins: {
         modern: [ChartDataLabels],
       },
